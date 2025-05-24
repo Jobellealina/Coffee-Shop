@@ -21,11 +21,8 @@ const AdminLogin = () => {
 
       if (response.ok) {
         localStorage.setItem('admin', 'true');
-
-        // ✅ Wait for Swal before redirecting
         await Swal.fire('Success', 'Admin login successful', 'success');
 
-        // ✅ Navigate only after Swal closes
         navigate('/admin/orders');
       } else {
         Swal.fire('Error', data.message || 'Invalid credentials', 'error');
