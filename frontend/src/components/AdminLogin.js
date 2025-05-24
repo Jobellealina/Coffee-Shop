@@ -21,7 +21,11 @@ const AdminLogin = () => {
 
       if (response.ok) {
         localStorage.setItem('admin', 'true');
-        Swal.fire('Success', 'Admin login successful', 'success');
+
+        // ✅ Wait for Swal before redirecting
+        await Swal.fire('Success', 'Admin login successful', 'success');
+
+        // ✅ Navigate only after Swal closes
         navigate('/admin/orders');
       } else {
         Swal.fire('Error', data.message || 'Invalid credentials', 'error');
@@ -33,7 +37,14 @@ const AdminLogin = () => {
   };
 
   return (
-    <div style={{ maxWidth: 400, margin: '100px auto', padding: '2rem', background: 'white', borderRadius: 8 }}>
+    <div style={{
+      maxWidth: 400,
+      margin: '100px auto',
+      padding: '2rem',
+      background: 'white',
+      borderRadius: 8,
+      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)'
+    }}>
       <h2 style={{ marginBottom: '1rem', textAlign: 'center' }}>Admin Login</h2>
       <form onSubmit={handleLogin}>
         <input
@@ -52,7 +63,9 @@ const AdminLogin = () => {
           required
           style={{ width: '100%', marginBottom: 10, padding: 8 }}
         />
-        <button type="submit" style={{ width: '100%', padding: 10 }}>Login</button>
+        <button type="submit" style={{ width: '100%', padding: 10, cursor: 'pointer' }}>
+          Login
+        </button>
       </form>
     </div>
   );
