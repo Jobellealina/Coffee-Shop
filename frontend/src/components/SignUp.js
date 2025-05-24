@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import './SignUp.css';
 
 const SignUp = ({ closeModal }) => {
+  const navigate = useNavigate();
+
   const [formData, setFormData] = useState({
     email: '',
     phone: '',
@@ -18,8 +20,6 @@ const SignUp = ({ closeModal }) => {
   const [passwordType, setPasswordType] = useState('password');
   const [otpSent, setOtpSent] = useState(false);
   const [loading, setLoading] = useState(false);
-
-  const navigate = useNavigate(); 
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -69,6 +69,11 @@ const SignUp = ({ closeModal }) => {
       return;
     }
 
+    if (!/^09\d{9}$/.test(phone)) {
+      Swal.fire('Warning', 'Phone number must start with 09 and be 11 digits long', 'warning');
+      return;
+    }
+
     if (password !== confirmPassword) {
       Swal.fire('Warning', 'Passwords do not match', 'warning');
       return;
@@ -101,9 +106,10 @@ const SignUp = ({ closeModal }) => {
 
       if (registerResponse.ok) {
         localStorage.setItem('user', JSON.stringify({ email, fullName }));
-        Swal.fire('Success', 'User registered successfully!', 'success');
-        closeModal();
-        navigate('/dashboard'); 
+        Swal.fire('Success', 'User registered successfully!', 'success').then(() => {
+          closeModal();
+          navigate('/dashboard'); 
+        });
       } else {
         Swal.fire('Error', registerData.message || 'Registration failed', 'error');
       }
@@ -134,8 +140,8 @@ const SignUp = ({ closeModal }) => {
         name="phone"
         value={formData.phone}
         onChange={handleChange}
-        placeholder="Phone Number"
-        pattern="09\\d{9}"
+        placeholder="Phone Number (e.g. 09123456789)"
+        pattern="09\d{9}"
         required
         className="signup-input"
       />
