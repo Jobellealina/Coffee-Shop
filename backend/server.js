@@ -1,21 +1,13 @@
-// server.js
 const express = require('express');
 const cors = require('cors');
 const http = require('http');
 const socketIo = require('socket.io');
-const mongoose = require('mongoose');
-const dotenv = require('dotenv');
-dotenv.config();
-
 const {
   sendOTPEmail,
   sendOrderStatusEmail,
   sendForgotPasswordEmail,
 } = require('./mailer');
-
-const User = require('./models/User');
-const Order = require('./models/Order');
-const Otp = require('./models/Otp');
+require('dotenv').config();
 
 const app = express();
 const server = http.createServer(app);
@@ -29,16 +21,19 @@ const io = socketIo(server, {
 app.use(cors());
 app.use(express.json());
 
-mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
-.then(() => console.log('MongoDB connected'))
-.catch((err) => console.error('MongoDB error:', err));
-
 app.get('/', (req, res) => {
   res.send('Coffee Shop Backend is running! ☕');
 });
+
+const otpStore = {};
+const verifiedEmails = new Set();
+const registeredUsers = new Map();
+const orders = [];
+
+const adminCredentials = {
+  email: 'admin@gmail.com',
+  password: 'Admin@2025',
+};
 
 const validateEmail = (email) => {
   const re = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
@@ -83,12 +78,7 @@ app.post('/send-otp', async (req, res) => {
   }
 
   const otp = Math.floor(100000 + Math.random() * 900000);
-  const expiration = Date.now() + 10 * 60 * 1000;
-  await Otp.findOneAndUpdate(
-    { email },
-    { otp, expiration },
-    { upsert: true, new: true }
-  );
+  otpStore[email] = { otp, expiration: Date.now() + 10 * 60 * 1000 };
 
   try {
     await sendOTPEmail(email, otp);
@@ -99,36 +89,40 @@ app.post('/send-otp', async (req, res) => {
   }
 });
 
-app.post('/verify-otp', async (req, res) => {
+app.post('/verify-otp', (req, res) => {
   const { email, otp } = req.body;
-  const data = await Otp.findOne({ email });
+  const data = otpStore[email];
 
   if (!data || data.otp !== parseInt(otp) || Date.now() > data.expiration) {
     return res.status(400).json({ message: 'Invalid or expired OTP' });
   }
 
-  await Otp.deleteOne({ email });
+  verifiedEmails.add(email);
+  delete otpStore[email];
   res.status(200).json({ message: 'OTP verified' });
 });
 
-app.post('/register', async (req, res) => {
+app.post('/register', (req, res) => {
   const { email, password } = req.body;
 
-  const exists = await User.findOne({ email });
-  if (exists) return res.status(400).json({ message: 'User already registered' });
+  if (!verifiedEmails.has(email)) {
+    return res.status(400).json({ message: 'OTP not verified' });
+  }
 
-  const verified = await Otp.findOne({ email });
-  if (verified) return res.status(400).json({ message: 'OTP not verified' });
+  if (registeredUsers.has(email)) {
+    return res.status(400).json({ message: 'User already registered' });
+  }
 
-  await User.create({ email, password });
+  registeredUsers.set(email, password);
+  verifiedEmails.delete(email);
   res.status(200).json({ message: 'Registered successfully' });
 });
 
-app.post('/login', async (req, res) => {
+app.post('/login', (req, res) => {
   const { email, password } = req.body;
-  const user = await User.findOne({ email });
+  const storedPassword = registeredUsers.get(email);
 
-  if (!user || user.password !== password) {
+  if (!storedPassword || storedPassword !== password) {
     return res.status(401).json({ message: 'Invalid credentials' });
   }
 
@@ -140,16 +134,12 @@ app.post('/forgot-password', async (req, res) => {
 
   if (!validateEmail(email)) return res.status(400).json({ message: 'Invalid email' });
 
-  const user = await User.findOne({ email });
-  if (!user) return res.status(404).json({ message: 'User not found' });
+  if (!registeredUsers.has(email)) {
+    return res.status(404).json({ message: 'User not found' });
+  }
 
   const resetToken = Math.floor(100000 + Math.random() * 900000);
-  const expiration = Date.now() + 10 * 60 * 1000;
-  await Otp.findOneAndUpdate(
-    { email },
-    { otp: resetToken, expiration },
-    { upsert: true, new: true }
-  );
+  otpStore[email] = { otp: resetToken, expiration: Date.now() + 10 * 60 * 1000 };
 
   try {
     await sendForgotPasswordEmail(email, resetToken);
@@ -160,20 +150,28 @@ app.post('/forgot-password', async (req, res) => {
   }
 });
 
-app.post('/reset-password', async (req, res) => {
+app.post('/reset-password', (req, res) => {
   const { email, resetToken, newPassword } = req.body;
-  const data = await Otp.findOne({ email });
+  const data = otpStore[email];
 
   if (!data || data.otp !== parseInt(resetToken) || Date.now() > data.expiration) {
     return res.status(400).json({ message: 'Invalid or expired token' });
   }
 
-  await User.findOneAndUpdate({ email }, { password: newPassword });
-  await Otp.deleteOne({ email });
+  registeredUsers.set(email, newPassword);
+  delete otpStore[email];
   res.status(200).json({ message: 'Password reset successfully' });
 });
 
-app.post('/api/orders', async (req, res) => {
+app.post('/admin/login', (req, res) => {
+  const { email, password } = req.body;
+  if (email === adminCredentials.email && password === adminCredentials.password) {
+    return res.status(200).json({ message: 'Admin login successful' });
+  }
+  res.status(401).json({ message: 'Invalid admin credentials' });
+});
+
+app.post('/api/orders', (req, res) => {
   const { items, phone, email, paymentMethod, paymentReference } = req.body;
 
   if (!email || !items || !phone) {
@@ -181,9 +179,8 @@ app.post('/api/orders', async (req, res) => {
   }
 
   const orderId = Math.floor(100000 + Math.random() * 900000);
-  const totalPayment = items.reduce((total, item) => total + item.price, 0);
 
-  const order = await Order.create({
+  const order = {
     orderId,
     status: 'Processing',
     items,
@@ -191,27 +188,33 @@ app.post('/api/orders', async (req, res) => {
     email,
     paymentMethod,
     paymentReference,
-    totalPayment,
+    totalPayment: items.reduce((total, item) => total + item.price, 0),
     createdAt: new Date(),
-  });
+  };
 
+  orders.push(order);
   console.log('Order created:', order);
   res.status(201).json({ message: 'Order placed', order });
 });
 
-app.get('/api/orders/:email', async (req, res) => {
+app.get('/api/orders/:email', (req, res) => {
   const { email } = req.params;
+
   if (!validateEmail(email)) {
     return res.status(400).json({ message: 'Invalid email' });
   }
 
-  const userOrders = await Order.find({ email });
+  const userOrders = orders.filter(order => order.email === email);
+
+  if (userOrders.length === 0) {
+    return res.status(200).json([]);
+  }
+
   res.status(200).json(userOrders);
 });
 
-app.get('/api/admin/orders', async (req, res) => {
-  const allOrders = await Order.find();
-  res.status(200).json(allOrders);
+app.get('/api/admin/orders', (req, res) => {
+  res.status(200).json(orders);
 });
 
 app.put('/api/admin/orders/:orderId/status', async (req, res) => {
@@ -223,13 +226,10 @@ app.put('/api/admin/orders/:orderId/status', async (req, res) => {
     return res.status(400).json({ message: 'Invalid status' });
   }
 
-  const order = await Order.findOneAndUpdate(
-    { orderId: parseInt(orderId) },
-    { status },
-    { new: true }
-  );
-
+  const order = orders.find(o => o.orderId === parseInt(orderId));
   if (!order) return res.status(404).json({ message: 'Order not found' });
+
+  order.status = status;
 
   try {
     await sendOrderStatusEmail(order.email, order);
