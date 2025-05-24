@@ -136,9 +136,11 @@ const SignUp = ({ closeModal }) => {
         value={formData.phone}
         onChange={handleChange}
         placeholder="Phone Number"
-        pattern="09\\d{9}"
+        pattern="09\\d{9}$"
         required
         className="signup-input"
+        onInvalid={(e) => e.target.setCustomValidity("Please enter a valid Ph number (e.g. 09123456789)")}
+        onInput={(e) => e.target.setCustomValidity("")}
       />
 
       <input
