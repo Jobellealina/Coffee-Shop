@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import Swal from 'sweetalert2';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom'; 
 import './SignUp.css';
 
 const SignUp = ({ closeModal }) => {
@@ -18,6 +18,7 @@ const SignUp = ({ closeModal }) => {
   const [passwordType, setPasswordType] = useState('password');
   const [otpSent, setOtpSent] = useState(false);
   const [loading, setLoading] = useState(false);
+
   const navigate = useNavigate(); 
 
   const handleChange = (e) => {
@@ -99,9 +100,9 @@ const SignUp = ({ closeModal }) => {
       const registerData = await registerResponse.json();
 
       if (registerResponse.ok) {
-        localStorage.setItem('user', JSON.stringify({ email, fullName })); 
+        localStorage.setItem('user', JSON.stringify({ email, fullName }));
         Swal.fire('Success', 'User registered successfully!', 'success');
-        closeModal(); 
+        closeModal();
         navigate('/dashboard'); 
       } else {
         Swal.fire('Error', registerData.message || 'Registration failed', 'error');
@@ -116,9 +117,7 @@ const SignUp = ({ closeModal }) => {
 
   return (
     <form onSubmit={handleRegister} className="signup-form">
-      <h2 className="signup-title" style={{ fontSize: '2rem', color: '#6f4f37', textAlign: 'center', marginBottom: '50px' }}>
-        Sign Up
-      </h2>
+      <h2 className="signup-title" style={{ fontSize: '2rem', color: '#6f4f37', textAlign: 'center', marginBottom: '50px' }}>Sign Up</h2>
 
       <input
         type="email"
@@ -136,11 +135,9 @@ const SignUp = ({ closeModal }) => {
         value={formData.phone}
         onChange={handleChange}
         placeholder="Phone Number"
-        pattern="09\\d{9}$"
+        pattern="09\\d{9}"
         required
         className="signup-input"
-        onInvalid={(e) => e.target.setCustomValidity("Please enter a valid Ph number (e.g. 09123456789)")}
-        onInput={(e) => e.target.setCustomValidity("")}
       />
 
       <input
@@ -160,6 +157,11 @@ const SignUp = ({ closeModal }) => {
         onChange={handleChange}
         required
         className="signup-input"
+        placeholder="Date of Birth"
+        onFocus={(e) => e.target.type = 'date'}
+        onBlur={(e) => {
+          if (!e.target.value) e.target.type = 'text';
+        }}
       />
 
       <div className="password-wrapper">
