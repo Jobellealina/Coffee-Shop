@@ -25,11 +25,6 @@ app.get('/', (req, res) => {
   res.send('Coffee Shop Backend is running! ☕');
 });
 
-// Render Health Check route
-app.get('/healthz', (req, res) => {
-  res.send('OK');
-});
-
 const otpStore = {};
 const verifiedEmails = new Set();
 const registeredUsers = new Map();
@@ -48,7 +43,7 @@ const validateEmail = (email) => {
 const userSockets = {};
 
 io.on('connection', (socket) => {
-  console.log('Socket connected:', socket.id);
+  console.log('User connected:', socket.id);
 
   socket.on('register-user', (email) => {
     userSockets[email] = socket.id;
@@ -65,7 +60,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
-    console.log('Socket disconnected:', socket.id);
+    console.log('User disconnected:', socket.id);
     for (const email in userSockets) {
       if (userSockets[email] === socket.id) {
         delete userSockets[email];
@@ -250,5 +245,5 @@ app.put('/api/admin/orders/:orderId/status', async (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`Server running on http://localhost:${PORT}`);
 });
