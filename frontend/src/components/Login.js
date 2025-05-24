@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Swal from 'sweetalert2';
 import { useNavigate } from 'react-router-dom';
 import './SignUp.css';
+import { API } from '../api'; // 👈 Import the API base URL
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -12,7 +13,7 @@ const Login = () => {
   const [forgotPasswordMode, setForgotPasswordMode] = useState(false);
   const [resetToken, setResetToken] = useState('');
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
-  const [tokenSent, setTokenSent] = useState(false); 
+  const [tokenSent, setTokenSent] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -33,7 +34,7 @@ const Login = () => {
     }
 
     try {
-      const response = await fetch('http://localhost:5000/login', {
+      const response = await fetch(`${API}/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -69,7 +70,7 @@ const Login = () => {
     }
 
     try {
-      const response = await fetch('http://localhost:5000/forgot-password', {
+      const response = await fetch(`${API}/forgot-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: forgotPasswordEmail }),
@@ -99,7 +100,7 @@ const Login = () => {
     }
 
     try {
-      const response = await fetch('http://localhost:5000/reset-password', {
+      const response = await fetch(`${API}/reset-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: forgotPasswordEmail, newPassword, resetToken }),
