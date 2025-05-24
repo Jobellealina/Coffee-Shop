@@ -21,6 +21,11 @@ const io = socketIo(server, {
 app.use(cors());
 app.use(express.json());
 
+// ✅ Root route to avoid "Cannot GET /" error
+app.get('/', (req, res) => {
+  res.send('Coffee Shop Backend is running! ☕');
+});
+
 const otpStore = {};
 const verifiedEmails = new Set();
 const registeredUsers = new Map();
@@ -174,17 +179,16 @@ app.post('/api/orders', (req, res) => {
     return res.status(400).json({ message: 'Missing fields' });
   }
 
-  // Generate numeric-only orderId (Random number between 100000000 and 999999999)
   const orderId = Math.floor(100000 + Math.random() * 900000);
 
   const order = {
-    orderId,  // Numeric-only order ID
+    orderId,
     status: 'Processing',
     items,
     phone,
     email,
-    paymentMethod,   // Added paymentMethod to the order object
-    paymentReference, // Added paymentReference to the order object
+    paymentMethod,
+    paymentReference,
     totalPayment: items.reduce((total, item) => total + item.price, 0),
     createdAt: new Date(),
   };
