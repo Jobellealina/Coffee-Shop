@@ -10,6 +10,7 @@ import CoffeeBlissFrontPage from "./components/CoffeeBlissFrontPage";
 import AboutPage from "./components/pages/AboutPage";
 import ContactsPage from "./components/pages/ContactsPage";
 import LandNavbar from "./components/LandNavbar";
+import AdminLogin from "./components/AdminLogin"; // ✅ New import
 
 const isAuthenticated = () => {
   return !!localStorage.getItem("user");
@@ -66,7 +67,7 @@ function App() {
             path="/admin/orders"
             element={isAdminAuthenticated() ? <AdminOrders /> : <Navigate to="/admin/login" replace />}
           />
-          <Route path="/admin/login" element={<Login />} />
+          <Route path="/admin/login" element={<AdminLogin />} /> {/* ✅ Replaced Login with AdminLogin */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
 
