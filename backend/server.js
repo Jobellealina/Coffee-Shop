@@ -21,7 +21,6 @@ const io = socketIo(server, {
 app.use(cors());
 app.use(express.json());
 
-// ✅ Root route to avoid "Cannot GET /" error
 app.get('/', (req, res) => {
   res.send('Coffee Shop Backend is running! ☕');
 });
@@ -32,8 +31,8 @@ const registeredUsers = new Map();
 const orders = [];
 
 const adminCredentials = {
-  email: 'admin',
-  password: 'admin@2025',
+  email: 'admin@gmail.com',
+  password: 'Admin@2025',
 };
 
 const validateEmail = (email) => {
